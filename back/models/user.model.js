@@ -1,70 +1,79 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema({
-     
     username: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
     },
-
-    fullName:{
+    fullName: {
         type: String,
-        required: true
+        required: true,
     },
-
     password: {
         type: String,
         required: true,
-        minLength: 6
+        minLength: 6,
     },
-
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
     },
-
-    followers:[
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User",
-            default:[]
-        }
-    ],
-
-    following:[
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User",
-            default:[]
-        }
-    ],
-
-    profileImage:{
+    followers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: [],
+    }, ],
+    following: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: [],
+    }, ],
+    profileImage: {
         type: String,
         default: "",
     },
-
-    coverImage:{
+    coverImage: {
         type: String,
         default: "",
     },
-
     bio: {
         type: String,
-        default: ""
+        default: "",
     },
-
-    link:{
+    link: {
         type: String,
-        default: ""
+        default: "",
+    },
+    likedpost: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Post",
+            default: [],
+        }
+    ]
+}, { timestamps: true });
+
+// ADD THIS PRE-SAVE HOOK
+// This function will run before a user document is saved
+userSchema.pre("save", async function(next) {
+    // Only hash the password if it has been modified (or is new)
+    if (!this.isModified("password")) {
+        return next();
     }
 
+    try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        // Pass any errors to the next middleware
+        next(error);
+    }
+});
 
-},{timestamps: true})
+const User = mongoose.model("User", userSchema);
 
-
-const UserModel = mongoose.model("User", userSchema);
-
-export default UserModel;
+export default User;

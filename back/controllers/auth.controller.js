@@ -2,124 +2,101 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { generateTokenAndSetCookie } from "../utils/generateToken.js";
 
-export const signup = async (req,res) => {
-    try{
-        const {fullName, username, email,password} = req.body;
+export const signup = async (req, res) => {
+    try {
+        const { fullName, username, email, password } = req.body;
 
-    //    VALIDATION
-
-    if (!fullName || !username || !email || !password) {
-            return res.status(400)
-            .json({ error: "Missing required fields" });
+        // Validate required fields
+        if (!fullName || !username || !email || !password) {
+            return res.status(400).json({ error: "All fields are required" });
         }
 
-        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    
-        if(!emailRegex.test(email)) {
-            return res.status(400)
-            .json({
-                error: "invalid email format"
-            })
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: "Invalid email format" });
         }
 
-        const existingUser = await User.findOne({username});
+        // Check if user already exists
+        const existingUser = await User.findOne({ 
+            $or: [{ email }, { username }] 
+        });
 
-        if(existingUser) {
-            return res.status(400)
-            .json({
-                error: "username is already taken"
-            })
+        if (existingUser) {
+            if (existingUser.email === email) {
+                return res.status(400).json({ error: "Email already exists" });
+            }
+            if (existingUser.username === username) {
+                return res.status(400).json({ error: "Username already exists" });
+            }
         }
 
-        const existingEmail = await User.findOne({email});
-
-        if(existingEmail) {
-            return res.status(400)
-            .json({
-                error: "email is already taken"
-            })
-        }
-        
         if (password.length < 6) {
             return res.status(400).json({ error: "Password must be at least 6 characters long" });
         }
 
-
-        // password HASH
-
-        const salt = await bcrypt.genSalt(10);
-
-        const hashPassword = await bcrypt.hash(password, salt);
-
         const newUser = new User({
-            fullName:fullName,
-            username:username,
-            email:email,
-            password:hashPassword,
-        })
-      
-        if(newUser) {
-           generateTokenAndSetCookie(newUser._id,res)
-           await newUser.save();
+            fullName,
+            username,
+            email,
+            password: password,
+        });
 
-           res.status(201)
-              .json({
-                _id : newUser._id,
+        if (newUser) {
+            generateTokenAndSetCookie(newUser._id, res);
+            await newUser.save(); // The pre-save hook will hash the pass
+
+            res.status(201).json({
+                _id: newUser._id,
                 fullName: newUser.fullName,
                 username: newUser.username,
                 email: newUser.email,
-                followers: newUser.followers,
-                following: newUser.following,
-                profileImage: newUser.profileImage,
-                coverImage: newUser.coverImage,
-              })
-
+            
+                    });
         } else {
-
-            res.status(400)
-               .json({
-                error: "Invalid user data"
-               });
-
+            res.status(400).json({ error: "Invalid user data" });
         }
-
-
     } catch (error) {
-    console.error("Error in signup controller:", error);
-    res.status(500).json({
-        error: "Internal server error"
-    });
-  }
-}
+        console.error("Error in signup controller:", error.message);
+        res.status(500).json({
+            error: "Internal server error"
+        });
+    }
+};
 
-export const login = async (req,res) => {
+export const login = async (req, res) => {
     try {
+        const { username, password } = req.body;
 
-      const {username, password} = req.body;
-    
-    //   validation
-
-      if (!username || !password) {
+        if (!username || !password) {
             return res.status(400).json({ error: "Username and password are required" });
         }
-    // username
-      const user = await User.findOne({ username });
 
-    //   password
+        console.log(`--- LOGIN ATTEMPT for user: ${username} ---`);
 
-    const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
+        const user = await User.findOne({ username });
 
-    if(!user || !password) {
-        res.status(400)
-        .json({
-            error: "Invalid username or password"
-        })
-    }
+        if (!user) {
+            console.log("DEBUG: User not found in database.");
+            return res.status(400).json({ error: "Invalid username or password" });
+        }
+        
+        console.log("DEBUG: User found. Stored password hash:", user.password);
+        console.log("DEBUG: Password received from client:", password);
 
-    generateTokenAndSetCookie(user._id, res);
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
-    res.status(200)
-    .json({
+        console.log("DEBUG: Result of bcrypt.compare:", isPasswordCorrect);
+
+        if (!isPasswordCorrect) {
+            console.log("DEBUG: Password comparison failed.");
+            return res.status(400).json({ error: "Invalid username or password" });
+        }
+
+        console.log("DEBUG: Password is correct. Generating token...");
+        generateTokenAndSetCookie(user._id, res);
+
+        res.status(200).json({
             _id: user._id,
             fullName: user.fullName,
             username: user.username,
@@ -130,15 +107,13 @@ export const login = async (req,res) => {
             coverImage: user.coverImage,
         });
 
-    } catch (err) {
-    
-        console.log("Error in login controller" , err.message);
-        res.status(500)
-        .json({
-            error: "Internel Server Error"
-        })
+    } catch (error) {
+        console.log("Error in login controller", error.message);
+        res.status(500).json({
+            error: "Internal Server Error"
+        });
     }
-}
+};
 
 export const logout = async (req,res) => {
     try {
@@ -156,7 +131,7 @@ export const logout = async (req,res) => {
             error: "Internel server error"
         });
     }
-}
+};
 
 export const getMe = async(req,res) => {
     try {
@@ -174,4 +149,4 @@ export const getMe = async(req,res) => {
             error: "Internel server error"
         })
     }
-}
+};
