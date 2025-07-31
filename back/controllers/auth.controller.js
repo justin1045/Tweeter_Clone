@@ -43,22 +43,26 @@ export const signup = async (req, res) => {
         });
 
         if (newUser) {
+            // Save user first, then generate token
+            await newUser.save(); // The pre-save hook will hash the password
             generateTokenAndSetCookie(newUser._id, res);
-            await newUser.save(); // The pre-save hook will hash the pass
 
-            res.status(201).json({
+            return res.status(201).json({
                 _id: newUser._id,
                 fullName: newUser.fullName,
                 username: newUser.username,
                 email: newUser.email,
-            
-                    });
+                followers: newUser.followers,
+                following: newUser.following,
+                profileImage: newUser.profileImage,
+                coverImage: newUser.coverImage,
+            });
         } else {
-            res.status(400).json({ error: "Invalid user data" });
+            return res.status(400).json({ error: "Invalid user data" });
         }
     } catch (error) {
         console.error("Error in signup controller:", error.message);
-        res.status(500).json({
+        return res.status(500).json({
             error: "Internal server error"
         });
     }
