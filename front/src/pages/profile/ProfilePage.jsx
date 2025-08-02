@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -11,6 +11,7 @@ import EditProfileModal from "./EditProfileModal";
 import Posts from "../../components/common/Posts";
 import useFollow from "../../hooks/useFollow"; // ✅ import hook
 import toast from "react-hot-toast";
+import { formatMembersSinceDate } from "../../utils/date";
 
 const ProfilePage = () => {
 	const { username } = useParams();
@@ -23,7 +24,7 @@ const ProfilePage = () => {
 
 	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
-	const { data: user, isLoading } = useQuery({
+	const { data: user, isLoading, refetch, isRefetching } = useQuery({
 		queryKey: ["userProfile", username],
 		queryFn: async () => {
 			const res = await fetch(`/api/v1/users/profile/${username}`);
@@ -34,6 +35,8 @@ const ProfilePage = () => {
 	});
 
 	const isMyProfile = authUser?.username === username;
+
+	const membersSinceDate = formatMembersSinceDate(user?.createdAt);
 
 	// ✅ use toggle follow hook
 	const { toggleFollow, isPending } = useFollow();
@@ -52,7 +55,11 @@ const ProfilePage = () => {
 		}
 	};
 
-	if (isLoading) return <ProfileHeaderSkeleton />;
+	useEffect(() => {
+		refetch();
+	}, [username, refetch]);
+
+	if (isLoading || isRefetching) return <ProfileHeaderSkeleton />;
 	if (!user) return <p className="text-center text-lg mt-4">User not found</p>;
 
 	return (
@@ -148,7 +155,7 @@ const ProfilePage = () => {
 					)}
 					<div className="flex gap-2 items-center">
 						<IoCalendarOutline className="w-4 h-4 text-slate-500" />
-						<span className="text-sm text-slate-500">Joined July 2021</span>
+						<span className="text-sm text-slate-500">{membersSinceDate}</span>
 					</div>
 				</div>
 
@@ -187,7 +194,7 @@ const ProfilePage = () => {
 			</div>
 
 			{/* Posts Section */}
-			<Posts />
+			<Posts feedType={feedType} username={username} userId={user?._id} />
 		</div>
 	);
 };
