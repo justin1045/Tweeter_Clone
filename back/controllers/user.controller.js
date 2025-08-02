@@ -110,7 +110,8 @@ export const getUserProfile = async (req, res) => {
       });
     }
 
-    res.status(200).json(user);
+
+    res.status(200).json();
   } catch (error) {
     console.log("Error in getUserProfile", error.message);
     res.status(500).json({
