@@ -4,8 +4,9 @@
   "description": "",
   "main": "back/index.js",
   "scripts": {
-    "dev": "nodemon back/index.js",
-    "start": "node back/index.js"
+    "dev": "cross-env NODE_ENV=development nodemon back/index.js",
+    "start": "cross-env NODE_ENV=production node back/index.js",
+    "build": "npm install && npm install --prefix front && npm run build --prefix front"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.0.0",
     "daisyui": "^5.0.50",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.6",
