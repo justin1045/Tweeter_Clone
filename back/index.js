@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename);
 
 // Load env variables
 dotenv.config();
+console.log("cloud name", process.env.CLOUDINARY_CLOUD_NAME);
 
 // Cloudinary config
 cloudinary.config({
