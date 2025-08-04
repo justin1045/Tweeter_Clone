@@ -5,97 +5,105 @@ import bcrypt from "bcryptjs";
 import { v2 as cloudinary } from "cloudinary";
 
 export const updateUser = async (req, res) => {
-    const { fullName, email, username, currentPassword, newPassword, bio, link } =
+  const { fullName, email, username, currentPassword, newPassword, bio, link } =
     req.body;
-    let { profileImg, coverImg } = req.body;
-    const userId = req.user._id;
+  let { profileImg, coverImg } = req.body;
+  const userId = req.user._id;
 
-    try {
-        let user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({
-                message: "User not found",
-            });
-        }
-
-        if (
-            (!newPassword && currentPassword) ||
-            (!currentPassword && newPassword)
-        ) {
-            return res.status(400).json({
-                error: "Please provide both current and new password.",
-            });
-        }
-
-        if (currentPassword && newPassword) {
-            console.log(`--- PASSWORD UPDATE ATTEMPT for user: ${user.username} ---`);
-            console.log("DEBUG: Current password received from client:", currentPassword);
-            console.log("DEBUG: Stored password hash in database:", user.password);
-            console.log("DEBUG: New password received:", newPassword);
-
-            const isMatch = await bcrypt.compare(currentPassword, user.password);
-            console.log("DEBUG: Result of bcrypt.compare for current password:", isMatch);
-
-            if (!isMatch) {
-                console.log("DEBUG: Current password comparison failed.");
-                return res.status(400).json({
-                    error: "Current password is incorrect!",
-                });
-            }
-
-            if (newPassword.length < 6) {
-                console.log("DEBUG: New password too short.");
-                return res.status(400).json({
-                    error: "Password must be at least 6 characters long",
-                });
-            }
-
-            console.log("DEBUG: Current password verified successfully. Setting new password...");
-            // ✅ FIX: Just set the new plain-text password.
-            // The pre-save hook in the model will handle hashing.
-            user.password = newPassword;
-        }
-
-        // Image and field update logic remains the same...
-        if (profileImg) {
-            if (user.profileImage) {
-                await cloudinary.uploader.destroy(
-                    user.profileImage.split("/").pop().split(".")[0]
-                );
-            }
-            const uploadedResponse = await cloudinary.uploader.upload(profileImg);
-            profileImg = uploadedResponse.secure_url;
-        }
-
-        if (coverImg) {
-            if (user.coverImage) {
-                await cloudinary.uploader.destroy(
-                    user.coverImage.split("/").pop().split(".")[0]
-                );
-            }
-            const uploadedResponse = await cloudinary.uploader.upload(coverImg);
-            coverImg = uploadedResponse.secure_url;
-        }
-
-        user.fullName = fullName || user.fullName;
-        user.email = email || user.email;
-        user.username = username || user.username;
-        user.bio = bio || user.bio;
-        user.link = link || user.link;
-        user.profileImage = profileImg || user.profileImage;
-        user.coverImage = coverImg || user.coverImage;
-
-        user = await user.save(); // The pre-save hook will now hash the password before saving
-
-        user.password = null;
-
-        return res.status(200).json(user);
-    } catch (error) {
-        console.log("Error in updateUser", error.message);
-        res.status(500).json({
-            error: error.message,
-        });
+  try {
+    let user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
     }
+
+    if (
+      (!newPassword && currentPassword) ||
+      (!currentPassword && newPassword)
+    ) {
+      return res.status(400).json({
+        error: "Please provide both current and new password.",
+      });
+    }
+
+    if (currentPassword && newPassword) {
+      console.log(`--- PASSWORD UPDATE ATTEMPT for user: ${user.username} ---`);
+      console.log(
+        "DEBUG: Current password received from client:",
+        currentPassword
+      );
+      console.log("DEBUG: Stored password hash in database:", user.password);
+      console.log("DEBUG: New password received:", newPassword);
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      console.log(
+        "DEBUG: Result of bcrypt.compare for current password:",
+        isMatch
+      );
+
+      if (!isMatch) {
+        console.log("DEBUG: Current password comparison failed.");
+        return res.status(400).json({
+          error: "Current password is incorrect!",
+        });
+      }
+
+      if (newPassword.length < 6) {
+        console.log("DEBUG: New password too short.");
+        return res.status(400).json({
+          error: "Password must be at least 6 characters long",
+        });
+      }
+
+      console.log(
+        "DEBUG: Current password verified successfully. Setting new password..."
+      );
+      // ✅ FIX: Just set the new plain-text password.
+      // The pre-save hook in the model will handle hashing.
+      user.password = newPassword;
+    }
+
+    // Image and field update logic remains the same...
+    if (profileImg) {
+      if (user.profileImage) {
+        await cloudinary.uploader.destroy(
+          user.profileImage.split("/").pop().split(".")[0]
+        );
+      }
+      const uploadedResponse = await cloudinary.uploader.upload(profileImg);
+      profileImg = uploadedResponse.secure_url;
+    }
+
+    if (coverImg) {
+      if (user.coverImage) {
+        await cloudinary.uploader.destroy(
+          user.coverImage.split("/").pop().split(".")[0]
+        );
+      }
+      const uploadedResponse = await cloudinary.uploader.upload(coverImg);
+      coverImg = uploadedResponse.secure_url;
+    }
+
+    user.fullName = fullName || user.fullName;
+    user.email = email || user.email;
+    user.username = username || user.username;
+    user.bio = bio || user.bio;
+    user.link = link || user.link;
+    user.profileImage = profileImg || user.profileImage;
+    user.coverImage = coverImg || user.coverImage;
+
+    user = await user.save(); // The pre-save hook will now hash the password before saving
+
+    user.password = null;
+
+    return res.status(200).json(user);
+  } catch (error) {
+    console.log("Error in updateUser", error.message);
+    res.status(500).json({
+      error: error.message,
+    });
+  }
 };
 
 export const getUserProfile = async (req, res) => {
@@ -177,7 +185,7 @@ export const followUnfollowUser = async (req, res) => {
         error: "User not found",
       });
     }
-
+    console.log("following", currentUser.following);
     const isFollowing = currentUser.following
       .map((oid) => oid.toString())
       .includes(id);
