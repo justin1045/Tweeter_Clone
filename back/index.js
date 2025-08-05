@@ -43,12 +43,15 @@ app.use("/api/v1/notifications", notificationRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "front", "dist")));
+  const frontendPath = path.join(__dirname, "..", "front", "dist");
+
+  app.use(express.static(frontendPath));
 
   app.get("*", (req, res) =>
-    res.sendFile(path.join(__dirname, "front", "dist", "index.html"))
+    res.sendFile(path.join(frontendPath, "index.html"))
   );
 }
+
 
 // Start Server
 const PORT = process.env.PORT || 8080;
