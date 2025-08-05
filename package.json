@@ -1,0 +1,12 @@
+{
+  "name": "tweeter-clone-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix back && npm install --prefix front && npm run build --prefix front",
+    "start": "npm start --prefix back"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
+  }
+}
